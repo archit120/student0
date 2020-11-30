@@ -1,0 +1,91 @@
+. Run GDB on the map executable.
+b. Set a breakpoint at the beginning of the program’s execution.
+c. Run the program until the breakpoint.
+
+d. What memory address does argv store?
+
+(gdb) print argv
+$1 = (char **) 0x7fffffffe298
+
+e. Describe what’s located at that memory address. (What does argv point to?)
+
+argv points to an array of char pointers.
+
+f. Step until you reach the first call to recur.
+g. What is the memory address of the recur function?
+
+(gdb) print recur
+$1 = {int (int)} 0x5555555546cd <recur>
+
+
+h. Step into the first call to recur.
+i. Step until you reach the if statement.
+j. Switch into assembly view.
+k. Step over instructions until you reach the callq instruction.
+l. What values are in all the registers?
+
+(gdb) info registers
+rax            0x2      2
+rbx            0x0      0
+rcx            0x0      0
+rdx            0x0      0
+rsi            0x555555756340   93824994337600
+rdi            0x2      2
+rbp            0x7fffffffe3f0   0x7fffffffe3f0
+rsp            0x7fffffffe3d0   0x7fffffffe3d0
+r8             0x0      0
+r9             0x7ffff7b502e0   140737349223136
+r10            0x555555756010   93824994336784
+r11            0x246    582
+r12            0x555555554580   93824992232832
+r13            0x7fffffffe510   140737488348432
+r14            0x0      0
+r15            0x0      0
+rip            0x555555554702   0x555555554702 <recur+53>
+eflags         0x10202  [ IF RF ]
+cs             0x33     51
+ss             0x2b     43
+ds             0x0      0
+es             0x0      0
+fs             0x0      0
+gs             0x0      0
+
+
+m. Step into the callq instruction.
+n. Switch back to C code mode.
+
+o. Now print out the current call stack. (Hint: what does the backtrace command do?)
+
+(gdb) bt
+#0  recur (i=21845) at recurse.c:3
+#1  0x0000555555554707 in recur (i=3) at recurse.c:9
+#2  0x00005555555546c6 in main (argc=1, argv=0x7fffffffe518) at map.c:22
+
+
+p. Now set a breakpoint on the recur function which is only triggered when the argument is 0.
+q. Continue until the breakpoint is hit.
+r. Print the call stack now.
+
+gdb) bt
+#0  recur (i=0) at recurse.c:5
+#1  0x0000555555554707 in recur (i=1) at recurse.c:9
+#2  0x0000555555554707 in recur (i=2) at recurse.c:9
+#3  0x0000555555554707 in recur (i=3) at recurse.c:9
+#4  0x00005555555546c6 in main (argc=1, argv=0x7fffffffe518) at map.c:22
+
+s. Now go up the call stack until you reach main. What was argc?
+
+1
+
+t. Now step until the return statement in recur.
+u. Switch back into the assembly view.
+v. Which instructions correspond to the return 0 in C?
+
+>│0x5555555546c6 <main+60>                mov    $0x0,%eax                                                                                                                                                                                                                   │
+   │0x5555555546cb <main+65>                leaveq                                                                                                                                                                                                                             │
+   │0x5555555546cc <main+66>                retq
+   
+w. Now switch back to the source layout.
+x. Finish the remaining 3 function calls.
+y. Run the program to completion.
+z. Quit GDB.

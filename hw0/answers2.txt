@@ -1,0 +1,52 @@
+ 1. Generate recurse.S and find which instruction(s) corresponds to the recursive call of recur(i - 1).
+
+starting from L33
+	movl	8(%ebp), %eax
+	subl	$1, %eax
+	subl	$12, %esp
+	pushl	%eax
+	call	recur
+
+2.  What do the .text and .data sections contain?
+
+.text section contains the assembly instructions of the source file. .data section contains the data memory objects needed by the source
+
+3. What command do we use to view the symbols in an ELF file? 
+
+vagrant@development [15:15:43] hw0 $ objdump -t map.o
+
+4. What do the g, O, F, and *UND* flags mean?
+
+g - global label
+O - object
+F - function
+UND - address is unknown, needs to be filed by linker
+
+5. Where else can we find a symbol for recur? Which file is this in? Copy and paste the relevant
+portion of the symbol table.
+
+00000000         *UND*  00000000 recur - from map.o
+00000000 g     F .text  00000052 recur - from recurse.o
+
+6. Examine the symbol table of the entire map program now. What has changed?
+
+Many more hidden symbols and recur is resolved now.
+
+7. What segment(s)/section(s) contains recur (the function)?
+
+000005ad g     F .text  00000052              recur
+
+address in gdb -    0x565555ad <recur>                        
+
+Mismatch of 0x56555000
+
+Loader has relocated the entire .text section. Linker does not produce absolute addressed output because the output may be futher linked with more objects
+
+8. . What segment(s)/section(s) contains global variables? Hint: look for the variables foo and stuff.
+.bss which contains uninitialized global variables and .data has initalized global variabless
+
+9. Do you see the stack segment anywhere? What about the heap? Explain.
+stack and heap are runtime memory. There is no way to preallocate them so they wont be on objdump
+
+10. Based on the output of map, in which direction does the stack grow? Explain.
+nothing in map related to stack but max stack size is known so its possible to allocate all that memory from the start only and then decrease pointer when more is needed.
