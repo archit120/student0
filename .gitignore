@@ -33,6 +33,7 @@
 *.swp
 .vscode
 .idea
+*.out
 
 # HW0
 hw0/limits
@@ -67,3 +68,4 @@ hw5/poolserver
 
 # HW5
 hw5/**/build
+disc/section0/5/asuna
