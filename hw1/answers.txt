@@ -1,0 +1,50 @@
+1. Is the program’s output the same each time it is run? Why or why not?
+
+It's not. The print order from the child threads and the value of common printed can differ 
+because they are not explicity synchronized.
+
+2. Based on the program’s output, do multiple threads share the same stack?
+
+No. The threads do not share the stack. However the stack of one thread is accessible from another thread.
+
+3. Based on the program’s output, do multiple threads have separate copies of global variables?
+
+No.
+
+4. Based on the program’s output, what is the value of void *threadid? How does this relate to
+the variable’s type (void *)?
+
+(void*) is 8 bytes and long is 8 bytes. So it can be used as a container for the same information. 
+It contains the threadid
+
+5. Using the first command line argument, create a large number of threads in pthread. Do all
+threads run before the program exits? Why or why not?
+
+Yes they do because pthread_exit only destroys the calling thread not the process.
+
+
+
+1. Briefly compare the performance of lwords and pwords when run on the Gutenberg dataset. How
+might you explain the performance differences?
+
+pwords
+real    0m25.391s
+user    0m27.020s
+sys     0m9.652s
+
+lwords
+real    0m16.489s
+user    0m16.381s
+sys     0m0.100s
+
+lwords is faster than pwords
+
+A lot of time is wasted in the locking and unlocking of mutex.
+
+2. Under what circumstances would pwords perform better than lwords? Under what circumstances
+would lwords perform better than pwords? Is it possible to use multiple threads in a way that
+always performs better than lwords?
+
+pwords should do better when the files are long. lwords should do better when files are short.
+
+every thread in pwords creates its own sorted lists first and then the lists are merged should make it faster.

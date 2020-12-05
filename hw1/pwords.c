@@ -32,6 +32,23 @@
 #include "word_count.h"
 #include "word_helpers.h"
 
+
+struct args
+{
+  char* filename; 
+  word_count_list_t* wclist;
+};
+typedef struct args args_t;
+
+void * newthread(void* a)
+{
+    args_t* args = (args_t*)a;
+    FILE* f = fopen(args->filename, "r");
+    count_words(args->wclist, f);
+    fclose(f);
+    return NULL;
+}
+
 /*
  * main - handle command line, spawning one thread per file.
  */
@@ -44,7 +61,19 @@ int main(int argc, char *argv[]) {
     /* Process stdin in a single thread. */
     count_words(&word_counts, stdin);
   } else {
-    /* TODO */
+    pthread_t* threads = malloc(sizeof(pthread_t)*(argc-1));
+    for(int i = 1;i<argc; i++)
+    {
+      args_t* a = malloc(sizeof(args_t));
+      a->filename = argv[i];
+      a->wclist = &word_counts;
+      pthread_create(threads+i, NULL, &newthread, (void*)a);
+    }
+    for(int i = 1;i<argc; i++)
+    {
+      pthread_join(threads[i], NULL);
+    }
+
   }
 
   /* Output final result of all threads' work. */

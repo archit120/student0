@@ -28,31 +28,58 @@
 
 void init_words(word_count_list_t *wclist) {
   /* TODO */
+  list_init(wclist);
 }
 
 size_t len_words(word_count_list_t *wclist) {
   /* TODO */
-  return 0;
+  return list_size(wclist);
 }
 
 word_count_t *find_word(word_count_list_t *wclist, char *word) {
   /* TODO */
+  struct list_elem* iter = list_begin(wclist);
+  while (iter!= list_tail(wclist))
+  {
+    word_count_t* temp = list_entry(iter, word_count_t, elem);
+    if(!strcmp(temp->word, word))
+      return temp;
+    iter = list_next(iter);
+  }
+
   return NULL;
 }
 
 word_count_t *add_word(word_count_list_t *wclist, char *word) {
   /* TODO */
-  return NULL;
+  word_count_t* temp = find_word(wclist, word);
+  if(temp!=NULL){  temp->count++; return temp; }
+  temp = (word_count_t*)malloc(sizeof(word_count_t));
+  temp->count = 1;
+  temp->word=word;
+  list_push_front(wclist, &(temp->elem));
+  return temp;
 }
 
 void fprint_words(word_count_list_t *wclist, FILE *outfile) {
   /* TODO */
+struct list_elem* iter = list_begin(wclist);
+
+  while (iter!= list_tail(wclist))
+  {
+    word_count_t* temp = list_entry(iter, word_count_t, elem);
+    fprintf(outfile, "\t%d\t%s\n", temp->count, temp->word);
+    iter = list_next(iter);
+  }
 }
 
 static bool less_list(const struct list_elem *ewc1,
                       const struct list_elem *ewc2, void *aux) {
   /* TODO */
-  return false;
+  bool (*less)(const word_count_t *, const word_count_t *);
+  less = (bool (*)(const word_count_t*, const word_count_t*))aux;
+
+  return less(list_entry(ewc1, word_count_t, elem), list_entry(ewc2, word_count_t, elem));
 }
 
 void wordcount_sort(word_count_list_t *wclist,
