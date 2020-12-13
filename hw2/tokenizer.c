@@ -3,12 +3,13 @@
 #include <string.h>
 #include "tokenizer.h"
 
-struct tokens {
-  size_t tokens_length;
-  char **tokens;
-  size_t buffers_length;
-  char **buffers;
-};
+// struct tokens {
+//   size_t tokens_length;
+//   char **tokens;
+//   size_t buffers_length;
+//   char **buffers;
+// };
+char sep;
 
 static void *vector_push(char ***pointer, size_t *size, void *elem) {
   *pointer = (char**) realloc(*pointer, sizeof(char *) * (*size + 1));
@@ -56,7 +57,7 @@ struct tokens *tokenize(const char *line) {
         if (i + 1 < line_length) {
           token[n++] = line[++i];
         }
-      } else if (isspace(c)) {
+      } else if ((sep == ' ' && isspace(c)) || c==sep) {
         if (n > 0) {
           void *word = copy_word(token, n);
           vector_push(&tokens->tokens, &tokens->tokens_length, word);
@@ -94,6 +95,8 @@ struct tokens *tokenize(const char *line) {
     vector_push(&tokens->tokens, &tokens->tokens_length, word);
     n = 0;
   }
+  size_t waste=tokens->tokens_length;
+  vector_push(&tokens->tokens, &waste, 0);
   return tokens;
 }
 
@@ -118,7 +121,8 @@ void tokens_destroy(struct tokens *tokens) {
     return;
   }
   for (int i = 0; i < tokens->tokens_length; i++) {
-    free(tokens->tokens[i]);
+    if(tokens->tokens[i])
+      free(tokens->tokens[i]);
   }
   for (int i = 0; i < tokens->buffers_length; i++) {
     free(tokens->buffers[i]);
