@@ -18,6 +18,16 @@
 #include "libhttp.h"
 #include "wq.h"
 
+#define BASICSERVER
+
+int is_regular_file(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
+
 /*
  * Global configuration variables.
  * You need to use these in your implementation of handle_files_request and
@@ -42,10 +52,33 @@ void serve_file(int fd, char *path) {
 
   http_start_response(fd, 200);
   http_send_header(fd, "Content-Type", http_get_mime_type(path));
-  http_send_header(fd, "Content-Length", "0"); // TODO: change this line too
+
+  int file_fd = open(path, O_RDONLY);
+
+  int sz = 0;
+  int cur = 0;
+  char buffer[100];
+  printf("%d", file_fd);
+  while((cur = read(file_fd, buffer, 100))) sz+=cur;
+  printf(" ");
+  printf("%d", sz);
+
+
+  lseek(file_fd, 0, SEEK_SET);
+  sprintf(buffer, "%d", sz);
+
+  http_send_header(fd, "Content-Length", buffer); // TODO: change this line too
   http_end_headers(fd);
 
+  while((cur = read(file_fd, buffer, 100)))
+  {
+    int written = 0;
+    while(written<cur) {
+      written += write(fd, buffer+written, cur-written);
+    }
+  }
 
+  close(file_fd);
   /* PART 2 END */
 }
 
@@ -64,6 +97,38 @@ void serve_directory(int fd, char *path) {
    * send a string containing a properly formatted HTML. (Hint: the http_format_href()
    * function in libhttp.c may be useful here)
    */
+  
+  //insert after 16 chars
+  const char* test = "c";
+  const char* header = "<html>\n<body>\n" ;
+  const char* footer = "</body>\n</html>\n";
+
+  char* data_buf = malloc(400);
+  strcpy(data_buf, header);
+  int pt = 14;
+  int sz = 400;
+  DIR *d;
+  struct dirent *dir;
+  d = opendir(path);
+  path[strlen(path)-1]='\0';
+  while ((dir = readdir(d)) != NULL) {
+    if(sz-pt < 200) data_buf = realloc(data_buf, sz+400), sz+=400;
+    pt+=http_format_href(data_buf+pt, path, dir->d_name);
+    data_buf[pt-1] = '\n';
+    // printf("%s\n", dir->d_name);
+    
+  }
+  closedir(d);
+  if(sz-pt < 20) data_buf = realloc(data_buf, sz+400), sz+=400;
+
+  memcpy(data_buf+pt, footer, 17);
+  int len = strlen(data_buf);
+  printf("%s\n", data_buf);
+
+  int written = 0;
+  while(written<len) {
+    written += write(fd, data_buf+written, len-written);
+  }
 
   /* PART 3 END */
 }
@@ -83,7 +148,6 @@ void serve_directory(int fd, char *path) {
  *   Closes the client socket (fd) when finished.
  */
 void handle_files_request(int fd) {
-
   struct http_request *request = http_request_parse(fd);
 
   if (request == NULL || request->path[0] != '/') {
@@ -106,7 +170,7 @@ void handle_files_request(int fd) {
   char *path = malloc(2 + strlen(request->path) + 1);
   path[0] = '.';
   path[1] = '/';
-  memcpy(path + 2, request->path, strlen(request->path) + 1);
+  memcpy(path + 2, request->path+1, strlen(request->path));
 
   /*
    * TODO: PART 2 is to serve files. If the file given by `path` exists,
@@ -119,6 +183,33 @@ void handle_files_request(int fd) {
    */
 
   /* PART 2 & 3 BEGIN */
+  printf("\n%s\n", path);
+  if(access(path, F_OK) == 0)
+  {
+    if(!is_regular_file(path)) {
+      char* path2 = malloc(strlen(path) + 11);
+      int sz = strlen(path);
+      strcpy(path2, path);
+      strcat(path2+sz, "index.html");
+      if (access (path2, F_OK) == 0) 
+        serve_file(fd, path2);
+      else
+        serve_directory(fd, path);
+      free(path2);
+    }
+    else
+        serve_file(fd, path);
+    free(path);
+  }
+  else {
+
+    http_start_response(fd, 404);
+    http_send_header(fd, "Content-Type", "text/html");
+    http_end_headers(fd);
+    close(fd);
+    return;
+
+  }
 
   /* PART 2 & 3 END */
 
@@ -267,6 +358,18 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
    */
 
   /* PART 1 BEGIN */
+
+  if(bind(*socket_number, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
+  {
+    perror("Failed to bind to port");
+    exit(errno);
+  }
+
+
+  if(listen(*socket_number, 1024) == -1) { 
+    perror("Failed to listen");
+    exit(errno);
+  }
 
   /* PART 1 END */
   printf("Listening on port %d...\n", server_port);

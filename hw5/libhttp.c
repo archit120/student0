@@ -135,9 +135,10 @@ char *http_get_mime_type(char *file_name) {
  * The resulting string in the buffer is null-terminated. It is the caller's
  * responsibility to ensure that the buffer has enough space for the resulting string.
  */
-void http_format_href(char *buffer, char *path, char *filename) {
+int http_format_href(char *buffer, char *path, char *filename) {
   int length = strlen("<a href=\"//\"></a><br/>") + strlen(path) + strlen(filename)*2 + 1;
   snprintf(buffer, length, "<a href=\"/%s/%s\">%s</a><br/>", path, filename, filename);
+  return length;
 }
 
 /*

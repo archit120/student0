@@ -36,7 +36,7 @@ struct http_request *http_request_parse(int fd);
 void http_start_response(int fd, int status_code);
 void http_send_header(int fd, char *key, char *value);
 void http_end_headers(int fd);
-void http_format_href(char *buffer, char *path, char *filename);
+int http_format_href(char *buffer, char *path, char *filename);
 void http_format_index(char *buffer, char *path);
 
 /*
