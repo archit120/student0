@@ -18,6 +18,8 @@
 #include "libhttp.h"
 #include "wq.h"
 
+#include "errd.h"
+
 #define BASICSERVER
 
 int is_regular_file(const char *path)
@@ -99,7 +101,6 @@ void serve_directory(int fd, char *path) {
    */
   
   //insert after 16 chars
-  const char* test = "c";
   const char* header = "<html>\n<body>\n" ;
   const char* footer = "</body>\n</html>\n";
 
@@ -123,12 +124,14 @@ void serve_directory(int fd, char *path) {
 
   memcpy(data_buf+pt, footer, 17);
   int len = strlen(data_buf);
-  printf("%s\n", data_buf);
+  // printf("%s\n", data_buf);
 
   int written = 0;
   while(written<len) {
     written += write(fd, data_buf+written, len-written);
   }
+
+  free(data_buf);
 
   /* PART 3 END */
 }
@@ -217,6 +220,53 @@ void handle_files_request(int fd) {
   return;
 }
 
+struct proxy_sockets{
+  int sender_fd;
+  int receiver_fd;
+  pthread_t* thread_other;
+};
+
+void * proxy_connect(void* arg){
+  struct proxy_sockets* p = (struct proxy_sockets*) arg;
+  int read_bytes;
+  char buffer[128];
+  printf("in1\n");
+  while(1)
+  {
+    read_bytes = read(p->receiver_fd, buffer, 128);
+    // printf("Read:%d\n", read_bytes);
+    if(read_bytes==-1 || read_bytes==0)
+    {
+      printf("Closing from error %s \n", errnoname(errno));
+      // close the other socket
+      // this can be an error but we can ignore
+      close(p->sender_fd);
+      close(p->receiver_fd);
+      pthread_cancel(p->thread_other);
+      return NULL;
+
+    }
+    int sent_bytes = 0;
+    while(sent_bytes != read_bytes)
+    {
+      int tsend = write(p->sender_fd, buffer+sent_bytes, read_bytes-sent_bytes);
+      if(tsend==-1)
+      {
+              printf("Closing2 from error %s \n", errnoname(errno));
+      // close the other socket
+      // this can be an error but we can ignore
+      close(p->sender_fd);
+      close(p->receiver_fd);
+      pthread_cancel(p->thread_other);
+      return NULL;
+
+      }
+      sent_bytes+=tsend;
+    }
+  }
+  return NULL;
+}
+
 /*
  * Opens a connection to the proxy target (hostname=server_proxy_hostname and
  * port=server_proxy_port) and relays traffic to/from the stream fd and the
@@ -269,7 +319,7 @@ void handle_proxy_request(int fd) {
   if (connection_status < 0) {
     /* Dummy request parsing, just to be compliant. */
     http_request_parse(fd);
-
+    
     http_start_response(fd, 502);
     http_send_header(fd, "Content-Type", "text/html");
     http_end_headers(fd);
@@ -281,7 +331,20 @@ void handle_proxy_request(int fd) {
 
   /* TODO: PART 4 */
   /* PART 4 BEGIN */
+  struct proxy_sockets data[2];
+  data[0].receiver_fd = data[1].sender_fd = fd;
+  data[0].sender_fd = data[1].receiver_fd = target_fd;
+  
+  pthread_t threads[2];
 
+  data[0].thread_other = threads+1;
+  data[1].thread_other = threads;
+  pthread_create(threads, NULL, &proxy_connect, (void*)data);
+  pthread_create(threads+1, NULL, &proxy_connect, (void*)(data+1));
+
+  pthread_join(threads[0], NULL);
+
+  printf("READY\n");
   /* PART 4 END */
 
 }
