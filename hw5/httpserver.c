@@ -504,7 +504,11 @@ void serve_forever(int *socket_number, void (*request_handler)(int))
 
     /* PART 5 BEGIN */
     if(!fork() )
+    {
       request_handler(client_socket_number);
+      close(*socket_number);
+      return;
+    }
     else
       close(client_socket_number);
     /* PART 5 END */
