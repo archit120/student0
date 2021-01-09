@@ -20,8 +20,6 @@
 
 #include "errd.h"
 
-#define POOLSERVER
-
 int is_regular_file(const char *path)
 {
   struct stat path_stat;
@@ -363,6 +361,17 @@ void handle_proxy_request(int fd)
   /* PART 4 END */
 }
 
+#ifdef THREADSERVER
+
+void (*request_handler_global)(int) ;
+
+void *handle_clients(void *req)
+{
+  request_handler_global((int)req);
+  return NULL;
+}
+#endif
+
 #ifdef POOLSERVER
 /*
  * All worker threads will run this function until the server shutsdown.
@@ -380,6 +389,13 @@ void *handle_clients(void *void_request_handler)
   /* TODO: PART 7 */
   /* PART 7 BEGIN */
 
+  while(1)
+  {
+    int client_fd = wq_pop(&work_queue);
+    request_handler(client_fd);
+  }
+
+  return NULL;
   /* PART 7 END */
 }
 
@@ -391,7 +407,10 @@ void init_thread_pool(int num_threads, void (*request_handler)(int))
 
   /* TODO: PART 7 */
   /* PART 7 BEGIN */
-
+  int i = 0;
+  pthread_t thread;
+  for(;i<num_threads;i++)
+    pthread_create(&thread, NULL, &handle_clients, (void*)request_handler);
   /* PART 7 END */
 }
 #endif
@@ -526,7 +545,8 @@ void serve_forever(int *socket_number, void (*request_handler)(int))
 
     /* PART 6 BEGIN */
     pthread_t temp;
-    pthread_create(&temp, NULL, request_handler, (void*)client_socket_number);
+    request_handler_global = request_handler;
+    pthread_create(&temp, NULL, handle_clients, (void*)client_socket_number);
     /* PART 6 END */
 #elif POOLSERVER
     /*
@@ -538,7 +558,7 @@ void serve_forever(int *socket_number, void (*request_handler)(int))
      */
 
     /* PART 7 BEGIN */
-
+    wq_push(&work_queue, client_socket_number);
     /* PART 7 END */
 #endif
   }

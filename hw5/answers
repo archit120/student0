@@ -1,0 +1,7 @@
+(a) Run ab on httpserver. What happens when n and c grow large?
+(b) Run ab on forkserver. What happens when n and c grow large? Compare these results
+with your answer in the previous question.
+(c) Run ab on threadserver. What happens when n and c grow large? Compare these
+results with your answers in the previous questions.
+(d) Run ab on poolserver. What happens when n and c grow large? Compare these results
+with your answers in the previous questions
