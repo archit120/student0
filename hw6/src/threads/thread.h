@@ -103,6 +103,8 @@ struct thread
     bool in_syscall;                    /* Stores if we are in a syscall. */
     void* heap_base;                    /* Start of heap. */
     void* heap_brk;                     /* Segment break. */
+
+    void* esp_user;
 #endif
 
     /* Owned by thread.c. */
