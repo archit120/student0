@@ -246,7 +246,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done;
     }
-
+t->heap_brk = t->heap_base = 0;
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
   for (i = 0; i < ehdr.e_phnum; i++)
@@ -299,12 +299,22 @@ load (const char *file_name, void (**eip) (void), void **esp)
               if (!load_segment (file, file_page, (void *) mem_page,
                                  read_bytes, zero_bytes, writable))
                 goto done;
+              t->heap_brk = t->heap_base = (mem_page + read_bytes + zero_bytes + 1)> (uintptr_t)t->heap_base ? (mem_page + read_bytes + zero_bytes+1) : t->heap_base;
+
             }
           else
             goto done;
           break;
         }
     }
+  void* page = palloc_get_page(PAL_USER | PAL_ZERO);
+  if(page == NULL)
+    goto done;
+  // printf("mapping heap to %p\n", t->heap_brk);
+  if(!pagedir_set_page (t->pagedir, t->heap_brk-1, page, true))
+    goto done;
+  t->heap_brk = (uintptr_t)t->heap_brk + 1;
+  // printf("loaded");
 
   /* Set up stack. */
   if (!setup_stack (esp))

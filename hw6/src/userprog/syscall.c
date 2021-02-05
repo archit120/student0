@@ -1,5 +1,6 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
+#include "lib/round.h"
 #include <string.h>
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
@@ -102,6 +103,31 @@ syscall_close (int fd)
 
 static void* syscall_sbrk(intptr_t increment) {
 	// TODO: Homework 6, YOUR CODE HERE
+  struct thread* t = thread_current ();
+
+  uintptr_t page_boundary = ROUND_UP((uintptr_t)t->heap_brk-1, PGSIZE);
+  uintptr_t page_boundary_alt = ROUND_DOWN((uintptr_t)t->heap_brk + increment, PGSIZE);
+  if(page_boundary <= page_boundary_alt)
+  {
+    while(page_boundary <= page_boundary_alt)
+    {
+      void* page = palloc_get_page(PAL_USER | PAL_ZERO);
+      // printf("installing page at %d\n", page_boundary);
+      if(page == NULL)
+        return -1;
+      if(!pagedir_set_page (t->pagedir, page_boundary, page, true))
+        return -1;
+      page_boundary += PGSIZE;
+    }
+  }
+  else if(page_boundary == page_boundary_alt + 2*PGSIZE) {
+
+  }
+  // printf("new brk: %p %d\n", t->heap_brk+increment, increment);
+  t->heap_brk += increment;
+
+  return t->heap_brk - 1;
+
 }
 
 
