@@ -299,7 +299,7 @@ t->heap_brk = t->heap_base = 0;
               if (!load_segment (file, file_page, (void *) mem_page,
                                  read_bytes, zero_bytes, writable))
                 goto done;
-              t->heap_brk = t->heap_base = (mem_page + read_bytes + zero_bytes + 1)> (uintptr_t)t->heap_base ? (mem_page + read_bytes + zero_bytes+1) : t->heap_base;
+              t->heap_base = (mem_page + read_bytes + zero_bytes)> (uintptr_t)t->heap_base ? (mem_page + read_bytes + zero_bytes) : t->heap_base;
 
             }
           else
@@ -307,15 +307,7 @@ t->heap_brk = t->heap_base = 0;
           break;
         }
     }
-  void* page = palloc_get_page(PAL_USER | PAL_ZERO);
-  if(page == NULL)
-    goto done;
-  // printf("mapping heap to %p\n", t->heap_brk);
-  if(!pagedir_set_page (t->pagedir, t->heap_brk-1, page, true))
-    goto done;
-  t->heap_brk = (uintptr_t)t->heap_brk + 1;
-  // printf("loaded");
-
+  t->heap_brk  = NULL;
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;

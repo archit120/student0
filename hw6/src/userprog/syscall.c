@@ -104,29 +104,69 @@ syscall_close (int fd)
 static void* syscall_sbrk(intptr_t increment) {
 	// TODO: Homework 6, YOUR CODE HERE
   struct thread* t = thread_current ();
+  
+  if(increment==0)  return t->heap_brk ? t->heap_brk : t->heap_base;
 
-  uintptr_t page_boundary = ROUND_UP((uintptr_t)t->heap_brk-1, PGSIZE);
+  bool c_install = false;
+  if(t->heap_brk == NULL) {
+    c_install = true;
+    t->heap_brk = t->heap_base;
+    void* page = palloc_get_page(PAL_USER | PAL_ZERO);
+    if(page == NULL)
+        return -1;
+    if(!pagedir_set_page (t->pagedir, t->heap_brk, page, true))
+      return -1;
+  }
+
+
+  uintptr_t page_boundary = ROUND_UP((uintptr_t)t->heap_brk+1, PGSIZE);
   uintptr_t page_boundary_alt = ROUND_DOWN((uintptr_t)t->heap_brk + increment, PGSIZE);
   if(page_boundary <= page_boundary_alt)
   {
-    while(page_boundary <= page_boundary_alt)
+    uintptr_t c_bound = page_boundary;
+    while(c_bound <= page_boundary_alt)
     {
       void* page = palloc_get_page(PAL_USER | PAL_ZERO);
-      // printf("installing page at %d\n", page_boundary);
+      // printf("installing page at %p\n", page_boundary);
       if(page == NULL)
-        return -1;
-      if(!pagedir_set_page (t->pagedir, page_boundary, page, true))
-        return -1;
-      page_boundary += PGSIZE;
+        break;
+      if(!pagedir_set_page (t->pagedir, c_bound, page, true))
+        break;
+      c_bound += PGSIZE;
+    }
+
+    if(c_bound<=page_boundary_alt) {
+      c_bound -= PGSIZE;
+      while (c_bound >= page_boundary)
+      {
+        // printf("installing page at %p\n", page_boundary);
+
+        palloc_free_page(pagedir_get_page(t->pagedir, c_bound));
+        pagedir_clear_page(t->pagedir, c_bound);
+        c_bound -= PGSIZE;
+      }
+      if(c_install)
+      {
+        palloc_free_page(pagedir_get_page(t->pagedir, t->heap_brk));
+        pagedir_clear_page(t->pagedir, t->heap_brk);
+        t->heap_brk = NULL;
+      }
+      return -1;
     }
   }
   else if(page_boundary == page_boundary_alt + 2*PGSIZE) {
-
+    uintptr_t c_bound = page_boundary - PGSIZE;
+    while(c_bound - page_boundary_alt >= PGSIZE) {
+      // printf("removing page at %p\n", c_bound);
+      palloc_free_page(pagedir_get_page(t->pagedir, c_bound));
+      pagedir_clear_page(t->pagedir, c_bound);
+      c_bound -= PGSIZE;
+    }
   }
   // printf("new brk: %p %d\n", t->heap_brk+increment, increment);
   t->heap_brk += increment;
-
-  return t->heap_brk - 1;
+  // printf("new brk: %p %d\n", t->heap_brk, increment);
+  return (t->heap_brk-increment);
 
 }
 
