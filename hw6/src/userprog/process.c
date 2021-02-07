@@ -307,7 +307,7 @@ t->heap_brk = t->heap_base = 0;
           break;
         }
     }
-  t->heap_brk  = NULL;
+  t->heap_brk  = t->heap_base;
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
